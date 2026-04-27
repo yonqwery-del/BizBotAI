@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizBot Private AI — ваш приватный AI-ассистент</title>
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.88/build/spline-viewer.js"></script>
+  <style>
+    :root {
+      --bg: #060a17;
+      --panel: rgba(16, 23, 45, 0.86);
+      --text: #eaf0ff;
+      --muted: #b1bcde;
+      --line: rgba(133, 148, 196, 0.35);
+      --brand: #6d7dff;
+      --brand-2: #72ffd0;
+      --danger: #ff7878;
+      --radius: 18px;
+      --shadow: 0 20px 60px rgba(2, 8, 25, 0.55);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, rgba(109, 125, 255, 0.28), transparent 55%),
+        radial-gradient(900px 550px at 0% 15%, rgba(114, 255, 208, 0.17), transparent 60%), var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+    .spline-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+    spline-viewer { width: 100%; height: 100%; }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(180deg, rgba(6, 10, 23, 0.2), rgba(6, 10, 23, 0.9) 55%, rgba(6, 10, 23, 1));
+      pointer-events: none;
+    }
+    .container { width: min(1140px, 92vw); margin: 0 auto; }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(9px);
+      background: rgba(5, 10, 22, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: 0.02em; }
+    .logo span { color: var(--brand-2); }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .nav-links a:hover { color: #fff; }
+    .nav-actions { display: flex; gap: 8px; }
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), #4d5dff);
+      box-shadow: 0 14px 30px rgba(93, 108, 255, 0.35);
+    }
+    .btn-ghost {
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+    }
+    .hero {
+      padding: 72px 0 24px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #b9ffe8, var(--brand-2));
+      color: #0f1835;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+    h1 { margin: 0 0 12px; font-size: clamp(34px, 6vw, 62px); line-height: 1.02; letter-spacing: -0.02em; }
+    .lead { margin: 0 0 22px; max-width: 62ch; color: var(--muted); font-size: 18px; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .glass {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .hero-side h3 { margin: 0 0 8px; }
+    .hero-side p { margin: 0; color: var(--muted); }
+    .mini-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .mini-stat { border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.03); padding: 10px; }
+    .mini-stat b { display: block; font-size: 18px; }
+    section { padding: 48px 0; }
+    .section-title { margin: 0 0 8px; font-size: clamp(28px, 4vw, 38px); }
+    .section-sub { margin: 0 0 18px; color: var(--muted); max-width: 70ch; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card {
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+    .card h3 { margin: 0 0 8px; }
+    .card p { margin: 0; color: var(--muted); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .price-card {
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(19, 28, 54, 0.94), rgba(11, 17, 36, 0.95));
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 470px;
+      position: relative;
+    }
+    .price-card.popular {
+      border-color: rgba(114, 255, 208, 0.6);
+      box-shadow: 0 18px 50px rgba(32, 77, 67, 0.35);
+    }
+    .popular-tag {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      color: #062318;
+      background: linear-gradient(130deg, #92ffd9, var(--brand-2));
+      font-weight: 800;
+    }
+    .plan { color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+    .price { margin: 0; font-size: 44px; letter-spacing: -0.02em; }
+    .price small { font-size: 14px; color: var(--muted); font-weight: 500; }
+    .price-note { color: var(--muted); margin: 8px 0 14px; min-height: 44px; font-size: 14px; }
+    .features { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 7px; flex: 1; }
+    .features li::before { content: "✓"; margin-right: 8px; color: var(--brand-2); font-weight: 900; }
+    .token-badge {
+      font-size: 12px;
+      display: inline-block;
+      border: 1px solid rgba(114,255,208,0.5);
+      color: #c6ffe9;
+      border-radius: 999px;
+      padding: 5px 9px;
+      margin-bottom: 10px;
+    }
+    .hint { margin-top: 9px; color: var(--muted); font-size: 13px; }
+    .use-cases {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .example-kpi {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255,255,255,0.2);
+      color: #d8e3ff;
+      font-size: 13px;
+    }
+    .faq-grid { display: grid; gap: 10px; }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+    }
+    summary { cursor: pointer; font-weight: 700; }
+    details p { margin: 8px 0 0; color: var(--muted); }
+    .admin-preview {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .metric {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .metric b { font-size: 24px; display: block; }
+    .chat-widget-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 0;
+      background: linear-gradient(135deg, var(--brand), #4255ff);
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      z-index: 80;
+      box-shadow: 0 16px 35px rgba(56, 82, 255, 0.45);
+    }
+    .chat-widget {
+      position: fixed;
+      right: 20px;
+      bottom: 96px;
+      width: min(380px, calc(100vw - 24px));
+      height: 500px;
+      z-index: 85;
+      border: 1px solid var(--line);
+      background: rgba(8, 13, 31, 0.95);
+      border-radius: 16px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .chat-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.03);
+      font-weight: 700;
+    }
+    .chat-counter { font-size: 12px; color: var(--muted); }
+    .chat-messages { flex: 1; overflow: auto; padding: 12px; display: grid; gap: 8px; }
+    .msg { padding: 9px 12px; border-radius: 12px; max-width: 88%; font-size: 14px; }
+    .msg.user { justify-self: end; background: #263266; border: 1px solid rgba(255,255,255,0.12); }
+    .msg.bot { justify-self: start; background: rgba(255,255,255,0.08); border: 1px solid var(--line); }
+    .chat-input-wrap { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+    .chat-input {
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      padding: 10px;
+    }
+    .chat-status { font-size: 12px; color: var(--danger); padding: 0 10px 10px; min-height: 20px; }
+    .auth-box {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .form-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+    }
+    .form-card h4 { margin: 0 0 10px; }
+    .input {
+      width: 100%;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      padding: 10px;
+    }
+    .status-line { margin-top: 8px; font-size: 12px; color: var(--muted); min-height: 18px; }
+    .secure-note {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #c6ffe9;
+    }
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      padding: 22px 0 30px;
+      margin-top: 40px;
+      font-size: 14px;
+    }
+    @media (max-width: 980px) {
+      .hero, .admin-preview { grid-template-columns: 1fr; }
+      .grid-3, .pricing-grid, .auth-box, .use-cases { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .nav-links { display: none; }
+      .nav-inner { flex-wrap: wrap; }
+      .nav-actions { width: 100%; }
+      .nav-actions .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="spline-bg">
+    <spline-viewer url="undefined"></spline-viewer>
+  </div>
+  <div class="overlay"></div>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <div class="logo">Biz<span>Bot</span> Private AI</div>
+      <nav class="nav-links">
+        <a href="#benefits">Преимущества</a>
+        <a href="#pricing">Тарифы</a>
+        <a href="#admin">Админ-панель</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="#auth">Вход</a>
+        <a class="btn btn-primary" href="#pricing">Выбрать тариф</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <span class="badge">Личный проект, не n8n, не конструктор-посредник</span>
+        <h1>Конфиденциальный AI-чат для бизнеса, где данные остаются у вас</h1>
+        <p class="lead">Мы сделали платформу как собственный продукт: без сторонних сценарных платформ и с фокусом на приватность. Меньше риска утечки, больше контроля над логикой и историей клиентов.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#pricing">Запустить сейчас</a>
+          <a class="btn btn-ghost" href="#auth">Регистрация и вход</a>
+        </div>
+      </div>
+      <aside class="glass hero-side">
+        <h3>Что уже внутри</h3>
+        <p>Антиспам-защита, контроль токенов, история чатов, бронирования, просмотр срока подписки и гибкая настройка внешнего вида AI-виджета.</p>
+        <div class="mini-stats">
+          <div class="mini-stat"><b>100%</b><span>контроль инфраструктуры</span></div>
+          <div class="mini-stat"><b>3 клика</b><span>до первого запуска</span></div>
+          <div class="mini-stat"><b>24/7</b><span>мониторинг активности</span></div>
+          <div class="mini-stat"><b>∞</b><span>масштабирование в топ-тарифе</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="benefits">
+      <h2 class="section-title">Наши преимущества</h2>
+      <p class="section-sub">Это личный проект, не n8n. Поэтому критичная логика, данные клиентов и настройки чатов находятся под вашим прямым управлением.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Максимальная конфиденциальность</h3>
+          <p>Храним историю и бизнес-контекст в вашей системе. Без ненужных прокладок и риска, что сторонняя платформа внезапно ограничит доступ.</p>
+        </article>
+        <article class="card">
+          <h3>Антиспам + защита от абьюза</h3>
+          <p>Ограничение частоты сообщений, блок подозрительных паттернов, контроль запросов на уровне сессии и возможность ручной модерации из админки.</p>
+        </article>
+        <article class="card">
+          <h3>Управление подпиской и токенами</h3>
+          <p>Видно, сколько токенов осталось, когда истекает период, сколько использовано за месяц и что именно расходует лимит.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <h2 class="section-title">Простой прайс в рублях</h2>
+      <p class="section-sub">Все тарифы включают приватную архитектуру, историю запросов и базовую защиту от спама. Можно повысить тариф в один клик.</p>
+      <div class="pricing-grid">
+        <article class="price-card">
+          <div class="plan">Start Private</div>
+          <p class="price">4 999 ₽ <small>/ месяц</small></p>
+          <span class="token-badge">До 20 000 токенов / месяц</span>
+          <p class="price-note">Старт для небольших проектов и теста гипотез с реальным AI в проде.</p>
+          <ul class="features">
+            <li>Виджет чата на сайт</li>
+            <li>До 3 операторов в команде</li>
+            <li>История диалогов и экспорт</li>
+            <li>Базовый антиспам и rate limit</li>
+            <li>Настройка внешнего вида чата</li>
+          </ul>
+          <button class="btn btn-ghost plan-btn" data-plan="start">Выбрать Start</button>
+        </article>
+
+        <article class="price-card popular">
+          <span class="popular-tag">Оптимальный</span>
+          <div class="plan">Growth Private</div>
+          <p class="price">9 999 ₽ <small>/ месяц</small></p>
+          <span class="token-badge">До 50 000 токенов / месяц</span>
+          <p class="price-note">Для активных продаж и поддержки, где важны скорость и расширенная аналитика.</p>
+          <ul class="features">
+            <li>Все из Start + приоритет обработки</li>
+            <li>Автосегментация клиентов</li>
+            <li>Продвинутые правила антиспама</li>
+            <li>Интеграция бронирований</li>
+            <li>Алерты по расходу токенов</li>
+          </ul>
+          <button class="btn btn-primary plan-btn" data-plan="growth">Выбрать Growth</button>
+        </article>
+
+        <article class="price-card">
+          <div class="plan">Infinity Private</div>
+          <p class="price">24 999 ₽ <small>/ месяц</small></p>
+          <span class="token-badge">Без ограничений по токенам</span>
+          <p class="price-note">Максимальный пакет для больших нагрузок и команд, которым нужна полная свобода.</p>
+          <ul class="features">
+            <li>Безлимитные токены</li>
+            <li>Индивидуальные правила безопасности</li>
+            <li>Панель для управления ролями</li>
+            <li>Собственные AI-пресеты под отделы</li>
+            <li>Приоритетная поддержка 24/7</li>
+          </ul>
+          <button class="btn btn-ghost plan-btn" data-plan="infinity">Выбрать Infinity</button>
+        </article>
+      </div>
+      <p class="hint">Пример: интернет-магазин на Growth обычно обрабатывает 6 000-12 000 обращений в месяц, не выгорая по лимитам.</p>
+    </section>
+
+    <section id="cases">
+      <h2 class="section-title">Примеры применения BizBot</h2>
+      <p class="section-sub">Готовые сценарии, где платформа быстро окупается за счет автоматизации диалогов и бронирований.</p>
+      <div class="use-cases">
+        <article class="card">
+          <h3>Салон красоты</h3>
+          <p>Автозапись, перенос времени, ответы по услугам и ценам без потерь заявок в вечерние часы.</p>
+          <div class="example-kpi">Рост подтвержденных записей до +34% за 2 месяца.</div>
+        </article>
+        <article class="card">
+          <h3>Онлайн-школа</h3>
+          <p>Прогрев лидов, квалификация перед менеджером, сбор данных для персонального оффера.</p>
+          <div class="example-kpi">Снижение нагрузки на отдел продаж до 40%.</div>
+        </article>
+        <article class="card">
+          <h3>E-commerce</h3>
+          <p>Ответы по доставке, возвратам и наличию, автоматический апселл и умные рекомендации.</p>
+          <div class="example-kpi">Увеличение конверсии в заказ на +18%.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="auth">
+      <h2 class="section-title">Регистрация и вход</h2>
+      <p class="section-sub">Можно зарегистрировать бизнес, выбрать тариф и сразу получить доступ к панели. Вход через Яндекс уже добавлен как основной вариант.</p>
+      <div class="auth-box">
+        <div class="form-card">
+          <h4>Регистрация бизнеса</h4>
+          <input class="input" id="regName" placeholder="Название бизнеса" />
+          <input class="input" id="regOwner" placeholder="Ваше имя" />
+          <input class="input" id="regEmail" type="email" placeholder="Email" />
+          <input class="input" id="regPhone" placeholder="+7 (___) ___-__-__" />
+          <button class="btn btn-primary" id="registerBtn">Зарегистрироваться</button>
+          <button class="btn btn-ghost" id="ucallerBtn">Подтвердить номер через uCaller</button>
+          <div class="secure-note">Ключи uCaller должны храниться только на backend (env), а не в шаблоне.</div>
+          <div class="status-line" id="registerStatus"></div>
+        </div>
+        <div class="form-card">
+          <h4>Вход в кабинет</h4>
+          <input class="input" id="loginBusinessId" placeholder="Business ID" />
+          <button class="btn btn-ghost" id="loginBtn">Войти по Business ID</button>
+          <button class="btn btn-primary" id="yandexLoginBtn" style="margin-top:8px;">Войти через Яндекс</button>
+          <div class="status-line" id="loginStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="admin">
+      <h2 class="section-title">Админ-панель после подписки</h2>
+      <p class="section-sub">После оплаты открывается кабинет, где можно настраивать вид чата, смотреть историю, остаток токенов, сроки подписки и бронирования.</p>
+      <div class="admin-preview">
+        <div class="card">
+          <h3>Что можно настраивать</h3>
+          <ul class="features">
+            <li>Темы чата, логотип и приветствие</li>
+            <li>Ограничения антиспама и стоп-слова</li>
+            <li>Сценарии для продаж и поддержки</li>
+            <li>Автоответы по расписанию</li>
+            <li>Роли команды и доступы</li>
+          </ul>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span>Осталось токенов</span><b id="tokensLeft">50 000</b></div>
+          <div class="metric"><span>Подписка активна до</span><b id="expiresAt">26.05.2026</b></div>
+          <div class="metric"><span>Диалогов за 30 дней</span><b>12 438</b></div>
+          <div class="metric"><span>Бронирований</span><b>1 087</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <h2 class="section-title">FAQ</h2>
+      <div class="faq-grid">
+        <details>
+          <summary>Чем вы отличаетесь от n8n и других конструкторов?</summary>
+          <p>Мы не строим весь продукт на внешнем сценарном конструкторе. Это позволяет контролировать критичную бизнес-логику и приватность на уровне платформы.</p>
+        </details>
+        <details>
+          <summary>Можно ли перейти с 4 999 на 9 999 без потери данных?</summary>
+          <p>Да, все диалоги, лимиты и настройки сохраняются. Апгрейд делает только расширение функционала и лимитов.</p>
+        </details>
+        <details>
+          <summary>Что, если закончились токены до конца месяца?</summary>
+          <p>Платформа предупредит заранее. Можно докупить пакет или перейти на старший тариф.</p>
+        </details>
+        <details>
+          <summary>Есть защита от спама?</summary>
+          <p>Да: лимиты на запросы, фильтрация шаблонного спама, throttling и ручные правила блокировок в панели администратора.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <button class="chat-widget-btn" id="chatOpenBtn" title="Открыть AI-чат">💬</button>
+  <div class="chat-widget" id="chatWidget">
+    <div class="chat-head">
+      <span>Демо-чат с нейронкой</span>
+      <span class="chat-counter" id="questionCounter">Вопросов осталось: 3</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">Привет! Задайте до 3 вопросов бесплатно. Дальше предложу подписку.</div>
+    </div>
+    <div class="chat-input-wrap">
+      <input class="chat-input" id="chatInput" placeholder="Введите вопрос..." />
+      <button class="btn btn-primary" id="chatSendBtn">Отправить</button>
+    </div>
+    <div class="chat-status" id="chatStatus"></div>
+  </div>
+
+  <footer>
+    <div class="container">BizBot Private AI © 2026 · Конфиденциальный AI-ассистент для бизнеса с прозрачным прайсом в рублях.</div>
+  </footer>
+
+  <script>
+    const chatWidget = document.getElementById("chatWidget");
+    const chatOpenBtn = document.getElementById("chatOpenBtn");
+    const chatSendBtn = document.getElementById("chatSendBtn");
+    const chatInput = document.getElementById("chatInput");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatStatus = document.getElementById("chatStatus");
+    const questionCounter = document.getElementById("questionCounter");
+    let remainingQuestions = 3;
+
+    const addMessage = (role, text) => {
+      const el = document.createElement("div");
+      el.className = "msg " + role;
+      el.textContent = text;
+      chatMessages.appendChild(el);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    const getApiWsUrl = () => {
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      return protocol + "//" + location.host + "/ws/chat/landing-demo";
+    };
+
+    let ws = null;
+    const connectWs = () => {
+      if (ws && ws.readyState <= 1) return;
+      ws = new WebSocket(getApiWsUrl());
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "bot" && data.text) addMessage("bot", data.text);
+        } catch (e) {
+          addMessage("bot", "Не удалось разобрать ответ сервера, но чат работает.");
+        }
+      };
+    };
+
+    const askAi = (text) => {
+      connectWs();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ text, name: "Demo user" }));
+      } else {
+        ws.addEventListener("open", () => {
+          ws.send(JSON.stringify({ text, name: "Demo user" }));
+        }, { once: true });
+      }
+    };
+
+    const sendQuestion = () => {
+      const text = chatInput.value.trim();
+      chatStatus.textContent = "";
+      if (!text) return;
+      if (remainingQuestions <= 0) {
+        chatStatus.textContent = "Бесплатный лимит исчерпан. Выберите тариф, чтобы продолжить.";
+        return;
+      }
+      addMessage("user", text);
+      chatInput.value = "";
+      remainingQuestions -= 1;
+      questionCounter.textContent = "Вопросов осталось: " + remainingQuestions;
+      if (remainingQuestions === 0) {
+        setTimeout(() => {
+          addMessage("bot", "Лимит 3 вопроса завершен. Оформите подписку, и чат будет без ограничений по сессиям.");
+          chatStatus.textContent = "Для продолжения нужен любой платный тариф.";
+        }, 400);
+      } else {
+        askAi(text);
+      }
+    };
+
+    chatOpenBtn.addEventListener("click", () => {
+      chatWidget.style.display = chatWidget.style.display === "flex" ? "none" : "flex";
+      if (chatWidget.style.display === "flex") chatInput.focus();
+    });
+    chatSendBtn.addEventListener("click", sendQuestion);
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendQuestion();
+    });
+
+    const registerBtn = document.getElementById("registerBtn");
+    const registerStatus = document.getElementById("registerStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginStatus = document.getElementById("loginStatus");
+    const tokensLeft = document.getElementById("tokensLeft");
+    const expiresAt = document.getElementById("expiresAt");
+    let currentBusinessId = localStorage.getItem("bizbot_business_id") || "";
+
+    const applyPlanMetrics = (plan) => {
+      if (plan === "basic") tokensLeft.textContent = "20 000";
+      if (plan === "pro") tokensLeft.textContent = "50 000";
+      if (plan === "enterprise") tokensLeft.textContent = "∞";
+    };
+
+    const refreshSubscriptionInfo = async (businessId) => {
+      const res = await fetch("/api/billing/" + encodeURIComponent(businessId) + "/subscription");
+      if (!res.ok) return;
+      const sub = await res.json();
+      applyPlanMetrics(sub.plan);
+      if (sub.expires_at) {
+        expiresAt.textContent = new Date(sub.expires_at).toLocaleDateString("ru-RU");
+      }
+    };
+
+    registerBtn.addEventListener("click", async () => {
+      const name = document.getElementById("regName").value.trim();
+      const owner = document.getElementById("regOwner").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const phone = document.getElementById("regPhone").value.trim();
+      if (!name || !owner || !email || !phone) {
+        registerStatus.textContent = "Заполни все поля регистрации.";
+        return;
+      }
+      registerStatus.textContent = "Регистрируем...";
+      try {
+        const params = new URLSearchParams({ email, name, owner_name: owner, phone });
+        const res = await fetch("/api/business/register?" + params.toString(), { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem("bizbot_business_id", data.business_id);
+          currentBusinessId = data.business_id;
+          document.getElementById("loginBusinessId").value = data.business_id;
+          registerStatus.textContent = "Готово! Ваш Business ID: " + data.business_id;
+        } else {
+          registerStatus.textContent = "Ошибка: " + (data.error || "неизвестно");
+        }
+      } catch (err) {
+        registerStatus.textContent = "Сервер недоступен. Запустите API и попробуйте снова.";
+      }
+    });
+
+    loginBtn.addEventListener("click", async () => {
+      const businessId = document.getElementById("loginBusinessId").value.trim();
+      if (!businessId) {
+        loginStatus.textContent = "Введите Business ID.";
+        return;
+      }
+      loginStatus.textContent = "Проверяем...";
+      try {
+        const res = await fetch("/api/business/" + encodeURIComponent(businessId));
+        if (!res.ok) throw new Error("not_found");
+        const data = await res.json();
+        localStorage.setItem("bizbot_business_id", businessId);
+        currentBusinessId = businessId;
+        loginStatus.textContent = "Вход выполнен. Открывайте админ-панель ниже.";
+        applyPlanMetrics(data.subscription_plan);
+        if (data.subscription_expires_at) {
+          const d = new Date(data.subscription_expires_at);
+          expiresAt.textContent = d.toLocaleDateString("ru-RU");
+        }
+        await refreshSubscriptionInfo(businessId);
+      } catch (err) {
+        loginStatus.textContent = "Не удалось войти: проверьте Business ID.";
+      }
+    });
+
+    document.getElementById("yandexLoginBtn").addEventListener("click", () => {
+      const clientId = window.YANDEX_CLIENT_ID || localStorage.getItem("bizbot_yandex_client_id") || "";
+      const redirect = encodeURIComponent(location.origin + "/auth/yandex/callback");
+      if (!clientId) {
+        loginStatus.textContent = "Добавьте YANDEX_CLIENT_ID в frontend-конфиг или localStorage (bizbot_yandex_client_id).";
+        return;
+      }
+      location.href = "https://oauth.yandex.ru/authorize?response_type=code&client_id=" + clientId + "&redirect_uri=" + redirect;
+    });
+
+    document.getElementById("ucallerBtn").addEventListener("click", async () => {
+      const phone = document.getElementById("regPhone").value.trim();
+      if (!phone) {
+        registerStatus.textContent = "Введите телефон для проверки через uCaller.";
+        return;
+      }
+      registerStatus.textContent = "Пробуем отправить номер в backend для uCaller...";
+      try {
+        const res = await fetch("/api/auth/ucaller/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone })
+        });
+        if (!res.ok) throw new Error("bad_response");
+        const data = await res.json();
+        registerStatus.textContent = data.message || "Запрос на подтверждение отправлен.";
+      } catch (e) {
+        registerStatus.textContent = "uCaller не настроен на сервере. Подключите ключи в .env и endpoint /api/auth/ucaller/start.";
+      }
+    });
+
+    const planButtons = document.querySelectorAll(".plan-btn");
+    planButtons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const planMap = { start: "basic", growth: "pro", infinity: "enterprise" };
+        const selected = planMap[btn.dataset.plan] || "basic";
+        localStorage.setItem("bizbot_selected_plan", selected);
+        const businessId = currentBusinessId || localStorage.getItem("bizbot_business_id");
+        if (!businessId) {
+          document.getElementById("auth").scrollIntoView({ behavior: "smooth", block: "start" });
+          addMessage("bot", "Тариф " + selected + " выбран. Сначала зарегистрируйтесь, потом завершим покупку.");
+          return;
+        }
+        try {
+          const res = await fetch("/api/billing/" + encodeURIComponent(businessId) + "/upgrade?plan=" + encodeURIComponent(selected), {
+            method: "POST"
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error("upgrade_failed");
+          applyPlanMetrics(selected);
+          if (data.expires_at) {
+            expiresAt.textContent = new Date(data.expires_at).toLocaleDateString("ru-RU");
+          }
+          addMessage("bot", "Подписка обновлена: " + selected + ". Доступ к функциям тарифа уже открыт.");
+          loginStatus.textContent = "Подписка активирована: " + selected + ".";
+        } catch (e) {
+          addMessage("bot", "Не удалось активировать тариф. Проверьте API /api/billing и попробуйте снова.");
+        }
+      });
+    });
+
+    const savedBusinessId = localStorage.getItem("bizbot_business_id");
+    if (savedBusinessId) {
+      document.getElementById("loginBusinessId").value = savedBusinessId;
+      currentBusinessId = savedBusinessId;
+      refreshSubscriptionInfo(savedBusinessId).catch(() => {});
+    }
+  </script>
+</body>
+</html>
